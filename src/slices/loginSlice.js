@@ -24,10 +24,10 @@ const loginSlice = createSlice({
     reducers : {
         login: (state, action) => {
             console.log("login.....");
-            //{email, pw로 구성}
-            const data = action.payload;
-            //새로운 상태
-            return {email: data.email}
+            //{쇼셜로그인 회원이 사용}
+            const payload = action.payload;
+            setCookie("member", JSON.stringify(payload), 1);
+            return payload;
         },
         logout: (state, action) => {
             console.log("logout...");
