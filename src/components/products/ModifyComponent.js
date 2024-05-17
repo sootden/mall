@@ -4,6 +4,7 @@ import FetchingModal from "../common/FetchingModal";
 import {API_SERVER_HOST} from "../../api/todoApi";
 import useCustomMove from "../../hooks/useCustomMove";
 import ResultModal from "../common/ResultModal";
+import {useMutation, useQuery, useQueryClient} from "@tanstack/react-query";
 
 const initState = {
     pno: 0,
@@ -18,21 +19,35 @@ const host = API_SERVER_HOST;
 
 const ModifyComponent = ({pno}) => {
     const [product, setProduct] = useState(initState);
-    const [fetching, setFetching] = useState(false);
-    const [result, setResult] = useState(null);
     const {moveToRead, moveToList} = useCustomMove();
     const uploadRef = useRef();
+    /*
+        조회와 달리 수정은 중간에 다시 API 서버를 호출하지 않도록 staleTime을 무한으로 설정
+     */
+    const query = useQuery(
+["products", pno],
+        () => getOne(pno),
+        {
+            staleTime : Infinity //무한
+        }
+    )
 
     useEffect(()=>{
-        setFetching(true);
-        getOne(pno).then(data => {
-            setProduct(data);
-            setFetching(false);
-        })
-    }, [pno])
+        if(query.isSuccess){
+            setProduct(query.data);
+        }
+    },[pno, query.data, query.isSuccess])
+
+    // useEffect(()=>{
+    //     setFetching(true);
+    //     getOne(pno).then(data => {
+    //         setProduct(data);
+    //         setFetching(false);
+    //     })
+    // }, [pno])
 
     const handleChangeProduct = (e) => {
-        product[e.target.name] = e.target.valueOf();
+        product[e.target.name] = e.target.value;
         setProduct({...product});
     }
 
@@ -42,6 +57,7 @@ const ModifyComponent = ({pno}) => {
         setProduct({...product});
     }
 
+    const modMutation = useMutation((product) => putOne(pno, product));
     const handleClickModify = ()=>{
         const files = uploadRef.current.files;
         const formData = new FormData();
@@ -62,34 +78,48 @@ const ModifyComponent = ({pno}) => {
         // }
         formData.append("uploadFileNames", product.uploadFileNames);
 
-        setFetching(true);
-        putOne(pno, formData).then(data=>{
-            setResult('Modified');
-            setFetching(false);
-        });
+        // setFetching(true);
+        // putOne(pno, formData).then(data=>{
+        //     setResult('Modified');
+        //     setFetching(false);
+        // });
+
+        modMutation.mutate(formData);
     }
 
-    const closeModal = () => {
-        if(result === 'Modified') {
-            moveToRead(pno);
-        }else if(result === 'Deleted'){
-            moveToList({page:1});
-        }
-        setResult(null);
-
-    }
-
+    const delMutation = useMutation((pno) => deleteOne(pno));
+    const queryClient = useQueryClient();
     const handleClickDelete = () => {
-        setFetching(true);
-        deleteOne(pno).then(data => {
-            setResult("Deleted");
-            setFetching(false);
-        })
+        // setFetching(true);
+        // deleteOne(pno).then(data => {
+        //     setResult("Deleted");
+        //     setFetching(false);
+        // })
+        delMutation.mutate(pno);
+    }
+    const closeModal = () => {
+        // if(result === 'Modified') {
+        //     moveToRead(pno);
+        // }else if(result === 'Deleted'){
+        //     moveToList({page:1});
+        // }
+        // setResult(null);
+
+        if(delMutation.isSuccess) {
+            queryClient.invalidateQueries(['products', pno]);
+            queryClient.invalidateQueries(['products/list']);
+            moveToList();
+        }
+        if(modMutation.isSuccess){
+            queryClient.invalidateQueries(['products', pno]);
+            queryClient.invalidateQueries(['products/list']);
+            moveToRead(pno);
+        }
     }
     return (
         <div className="border-2 border-sky-200 mt-10 m-2 p-4">
-            {fetching ? <FetchingModal/>:<></>}
-            {result? <ResultModal title={`${result}`} content={'정상적으로 처리되었습니다.'} callbackFn={closeModal()}/> : <></>}
+            {query.isFetching || delMutation.isLoading || modMutation.isLoading ? <FetchingModal/>:<></>}
+            {delMutation.isSuccess || modMutation.isSuccess ? <ResultModal title={`처리 결과`} content={'정상적으로 처리되었습니다.'} callbackFn={closeModal}/> : <></>}
             <div className="flex justify-center">
                 <div className="relative mb-4 flex w-full flex-wrap items-stretch">
                     <div className="w-1/5 p-6 text-right font-bold">Product Name</div>

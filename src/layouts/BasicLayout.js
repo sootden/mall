@@ -1,5 +1,5 @@
 import BasicMenu from "../components/menus/BasicMenu";
-import CartComponent from "../components/menus/CartComponent";
+import CartComponent from "../components/cart/CartComponent";
 
 const BasicLayout = ({children}) => {
     return (

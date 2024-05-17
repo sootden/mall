@@ -3,6 +3,8 @@ import {useSelector} from "react-redux";
 import {modifyMember} from "../../api/memberApi";
 import useCustomLogin from "../../hooks/useCustomLogin";
 import ResultModal from "../common/ResultModal";
+import {useRecoilState} from "recoil";
+import signinState from "../../atoms/signinState";
 
 const initState = {
     email: '',
@@ -12,15 +14,16 @@ const initState = {
 const ModifyComponent = () => {
 
     const [member, setMember] = useState(initState);
-    const loginInfo = useSelector(state => state.loginSlice);
+    // const loginInfo = useSelector(state => state.loginSlice);
+    const [loginState, setLoginState] = useRecoilState(signinState);
 
     const {moveToLogin} = useCustomLogin();
 
     const [result, setReuslt] = useState();
 
     useEffect(()=>{
-        setMember({...loginInfo, pw: 'ABCD'});
-    },[loginInfo])
+        setMember({...loginState, pw: 'ABCD'});
+    },[loginState])
 
     const handleChange = (e) => {
         member[e.target.name] = e.target.value;

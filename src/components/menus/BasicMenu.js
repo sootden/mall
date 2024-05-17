@@ -1,9 +1,13 @@
-import {useSelector} from "react-redux";
+import useCustomLogin from "../../hooks/useCustomLogin";
 
 const { Link } = require("react-router-dom")
 
 const BasicMenu = () => {
-    const loginState = useSelector(state => state.loginSlice);
+    //redux
+    // const loginState = useSelector(state => state.loginSlice);
+    //recoil
+    const {loginState} = useCustomLogin();
+
     return (
         <nav id='navbar' className=" flex bg-blue-300">
             <div className="w-4/5 bg-gray-500">

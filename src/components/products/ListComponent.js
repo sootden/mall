@@ -5,6 +5,7 @@ import FetchingModal from "../common/FetchingModal";
 import {API_SERVER_HOST} from "../../api/todoApi";
 import PageComponent from "../common/PageComponent";
 import useCustomLogin from "../../hooks/useCustomLogin";
+import {useQuery, useQueryClient} from "@tanstack/react-query";
 
 const host = API_SERVER_HOST;
 
@@ -22,30 +23,51 @@ const initState = {
 }
 const ListComponent = () => {
     const {page, size, refresh, moveToList, moveToRead} = useCustomMove();
-
-    //serverData는 나중에 사용
-    const [serverData, setServerData] = useState(initState);
-
-    //for FetchingModal
-    const [fetching, setFetching] = useState(false);
-
     const {exceptionHandle} = useCustomLogin();
+    // const [serverData, setServerData] = useState(initState);
+    //
+    // // for FetchingModal
+    // const [fetching, setFetching] = useState(false);
+    //
+    // useEffect(() => {
+    //     setFetching(true);
+    //     getList({page, size}).then(data => {
+    //         console.log(data);
+    //         setServerData(data);
+    //         setFetching(false);
+    //     }).catch(err => exceptionHandle(err));
+    // }, [page, size, refresh]);
 
-    useEffect(() => {
-        setFetching(true);
-        getList({page, size}).then(data => {
-            console.log(data);
-            setServerData(data);
-            setFetching(false);
-        }).catch(err => exceptionHandle(err));
-    }, [page, size, refresh]);
+    const {moveToLoginReturn} = useCustomLogin;
+    const {isFetching, data, error, isError} = useQuery(
+        ['products/list', {page, size, refresh}],
+        ()=> getList({page, size}),
+        {staleTime: 1000 * 5}
+    )
+
+    // const queryClient = useQueryClient(); //refresh 추가로 필요 x
+    //현재 페이지를 눌렸을 경우, 쿼리에 저장된 데이터 무효화 후 재호출 //refresh 추가로 필요 x
+    const handleClickPage = (pageParam) => {
+        // if(pageParam.page === parseInt(page)){ //refresh 추가로 필요 x
+        //     //쿼리가 보관하는 데이터 무효화
+        //     queryClient.invalidateQueries("product/list");
+        // }
+        moveToList(pageParam);
+    }
+
+    if(isError){
+        console.log(error);
+        return moveToLoginReturn();
+    }
+
+    const serverData = data || initState;
+
 
     return (
         <div className="border-2 border-blue-100 mt-10 mr-2 ml-2">
-            {fetching? <FetchingModal/> : <></>}
+            {isFetching? <FetchingModal/> : <></>}
             <div className="flex flex-wrap mx-auto p-6">
-                {
-                serverData.dtoList.map(product =>
+                { serverData.dtoList.map(product =>
                     <div key={product.pno} className="w-1/2 p-1 rounded shadow-md border-2" onClick={()=>moveToRead(product.pno)}>
                         <div className="flex flex-col h-full">
                             <div className="font-extrabold text-2xl p-2 w-full">
@@ -68,7 +90,7 @@ const ListComponent = () => {
                     </div>)
                 }
             </div>
-            <PageComponent serverDate={serverData} movePage={moveToList}></PageComponent>
+            <PageComponent serverDate={serverData} movePage={handleClickPage}></PageComponent>
         </div>
     );
 };

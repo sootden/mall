@@ -1,5 +1,4 @@
 import React, {useState} from 'react';
-import {useDispatch, useSelector} from "react-redux";
 import loginPage from "../../pages/member/LoginPage";
 import {login, loginPostAsync} from "../../slices/loginSlice";
 import {useNavigate} from "react-router-dom";
@@ -14,8 +13,6 @@ const LoginComponent = () => {
     const [loginParam, setLoginParam] = useState({...initState});
 
     const {doLogin, moveToPath} = useCustomLogin();
-
-    const dispatch = useDispatch();
 
     const navigate = useNavigate();
 

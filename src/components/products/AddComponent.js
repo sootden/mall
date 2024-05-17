@@ -3,6 +3,7 @@ import ResultModal from "../common/ResultModal";
 import {postAdd} from "../../api/productsApi";
 import FetchingModal from "../common/FetchingModal";
 import useCustomMove from "../../hooks/useCustomMove";
+import {useMutation, useQueryClient} from "@tanstack/react-query";
 
 const initState = {
     pname: '',
@@ -13,16 +14,18 @@ const initState = {
 
 const AddComponent = () => {
     const uploadRef = useRef();
-
     const {moveToList} = useCustomMove();
-
     const [product, setProduct] = useState({...initState});
-    const [fetching, setFetching] = useState(false);
-    const [result, setResult] = useState(null);
+
     const handleChangeProduct = (e) => {
         product[e.target.name] = e.target.value;
         setProduct({...product});
     }
+/*
+    useMutation : useQuery()가 select라면, useMutation()은 insert/update/delete 작업
+        *param : 서버를 호출하는 함수 전달
+ */
+    const addMutation = useMutation((product) => postAdd(product));
 
     const handleClickAdd = (e) => {
         const files = uploadRef.current.files;
@@ -38,23 +41,27 @@ const AddComponent = () => {
 
         console.log(formData);
 
-        setFetching(true);
-        postAdd(formData).then(data => {
-            setFetching(false);
-            setResult(data.result);
-        });
+        addMutation.mutate(formData);
+        // setFetching(true);
+        // postAdd(formData).then(data => {
+        //     setFetching(false);
+        //     setResult(data.result);
+        // });
     }
 
+    const queryClient = useQueryClient();
     const closeModal = () => {
-        setResult(null);
+        // setResult(null);
+        //ListComponent의 staleTime으로 인해 저장된 상품이 리스트에 표출이 안되는 경우를 위해 쿼리 데이터 무효화 실행
+        queryClient.invalidateQueries("products/list");
         moveToList({page: 1});
     }
 
     return (
         <div className="border-2 border-sky-200 mt-10 m-2 p-4">
-            { fetching? <FetchingModal/>: <></> }
+            { addMutation.isLoading ? <FetchingModal/>: <></> }
             {
-                result ? <ResultModal title={'Product Add Result'} content={`${result}번 등록완료`} callbackFn={closeModal}/> : <></>
+                addMutation.isSuccess ? <ResultModal title={'Add Result'} content={`Add Success ${addMutation.data.result}`} callbackFn={closeModal}/> : <></>
             }
             <div className="flex justify-center">
                 <div className="relative mb-4 flex w-full flex-wrap items-stretch">

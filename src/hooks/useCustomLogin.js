@@ -1,21 +1,49 @@
 import React from 'react';
 import {Navigate, useNavigate, createSearchParams} from "react-router-dom";
-import {useDispatch, useSelector} from "react-redux";
 import {loginPostAsync, logout} from "../slices/loginSlice";
+import {useRecoilState, useResetRecoilState} from "recoil";
+import signinState from "../atoms/signinState";
+import {loginPost} from "../api/memberApi";
+import {removeCookie, setCookie} from "../util/cookieUtil";
+import {cartState} from "../atoms/cartState";
 
 const UseCustomLogin = () => {
     const navigate = useNavigate();
-    const dispatch = useDispatch();
-    const loginState = useSelector(state => state.loginSlice)
+
+    //1) redux 사용
+    // const loginState = useSelector(state => state.loginSlice);
+    //2) recoil 사용
+    const [loginState, setLoginState] = useRecoilState(signinState);
+    const resetState = useResetRecoilState(signinState);
+    const resetCartState = useResetRecoilState(cartState);
+
     const isLogin = loginState.email ? true : false;
 
     const doLogin = async (loginParam) => {
-        const action = await dispatch(loginPostAsync(loginParam));
-        return action.payload;
+        //1)redux
+        // const action = await dispatch(loginPostAsync(loginParam));
+        // return action.payload;
+
+        //2)recoil
+        const result = await loginPost(loginParam);
+        console.log(result);
+        saveAsCookie(result);
+        return result;
+    }
+
+    const saveAsCookie = (data) =>{
+        setCookie("member", JSON.stringify(data), 1); //1일
+        setLoginState(data);
     }
 
     const doLogout = () => {
-        dispatch(logout());
+        //redux
+        // dispatch(logout());
+
+        //recoil
+        removeCookie('member');
+        resetState();
+        resetCartState();
     }
 
     const moveToPath = (path) => {
@@ -47,7 +75,7 @@ const UseCustomLogin = () => {
         }
     }
 
-    return {loginState, isLogin, doLogin, doLogout, moveToPath, moveToLogin, moveToLoginReturn, exceptionHandle}
+    return {loginState, isLogin, doLogin, doLogout, moveToPath, moveToLogin, moveToLoginReturn, exceptionHandle, saveAsCookie}
 };
 
 export default UseCustomLogin;
